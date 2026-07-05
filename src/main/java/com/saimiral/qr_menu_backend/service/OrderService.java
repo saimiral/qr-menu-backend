@@ -26,6 +26,7 @@ public class OrderService {
     private final TableRepository storeTableRepository;
     private final MenuItemRepository menuItemRepository;
     private final OrderMapper orderMapper;
+    private final SSE_Service sseService;
 
     @Transactional
     public OrderResponseDTO placeOrder(OrderRequestDTO request) {
@@ -52,7 +53,13 @@ public class OrderService {
 
         order.setItems(items);
         Order saved = orderRepository.save(order);
-        return orderMapper.toDTO(saved);
+        OrderResponseDTO response = orderMapper.toDTO(saved);
+
+        // Push real-time event στο kitchen dashboard
+        String storeSlug = table.getStore().getSlug();
+        sseService.pushNewOrder(storeSlug, response);
+
+        return response;
     }
 
     @Transactional
