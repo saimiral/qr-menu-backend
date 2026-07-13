@@ -8,6 +8,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
 
@@ -20,6 +21,8 @@ public class DataInitializer {
     private final TableRepository storeTableRepository;
     private final CategoryRepository categoryRepository;
     private final MenuItemRepository menuItemRepository;
+    private final StoreUserRepository StoreUserRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Bean
     @Profile("dev")
@@ -115,6 +118,23 @@ public class DataInitializer {
             croissant.setDescription("Φρέσκο κρουασάν με βούτυρο");
             croissant.setPrice(new BigDecimal("2.20"));
             menuItemRepository.save(croissant);
+
+            StoreUser admin = new StoreUser();
+            admin.setStore(store);
+            admin.setEmail("admin@kafeteria.gr");
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setRole(UserRole.ADMIN);
+            StoreUserRepository.save(admin);
+
+            StoreUser kitchen = new StoreUser();
+            kitchen.setStore(store);
+            kitchen.setEmail("kitchen@kafeteria.gr");
+            kitchen.setPassword(passwordEncoder.encode("kitchen123"));
+            kitchen.setRole(UserRole.KITCHEN);
+            StoreUserRepository.save(kitchen);
+
+            log.info("Admin: admin@kafeteria.gr / admin123");
+            log.info("Kitchen: kitchen@kafeteria.gr / kitchen123");
 
             log.info("✅ Test data seeded successfully!");
             log.info("Store slug: kafeteria-dokimi");
