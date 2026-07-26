@@ -32,15 +32,12 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public - πελάτης
                         .requestMatchers("/api/menu/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
-                        // Public - auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // Kitchen - μόνο με JWT
+                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/orders/kitchen/**").hasAnyRole("KITCHEN", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasAnyRole("KITCHEN", "ADMIN")
-                        // Όλα τα υπόλοιπα
                         .anyRequest().hasRole("ADMIN")
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     List<MenuItem> findByCategoryIdAndAvailableTrue(Long categoryId);
+    List<MenuItem> findByCategoryId(Long categoryId);
 }
