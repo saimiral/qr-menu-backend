@@ -50,7 +50,7 @@ public class TableAdminService {
         return toDTO(saved);
     }
 
-    private TableOfQR getOwnedTable(Long tableId, Authentication authentication) {
+    public TableOfQR getOwnedTable(Long tableId, Authentication authentication) {
         Store store = currentUserService.getCurrentStore(authentication);
 
         TableOfQR table = tableRepository.findById(tableId)
