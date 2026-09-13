@@ -16,7 +16,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -27,11 +31,19 @@ public class OrderService {
     private final MenuItemRepository menuItemRepository;
     private final OrderMapper orderMapper;
     private final SSE_Service sseService;
+    private static final int MAX_ITEMS_PER_ORDER = 30;
+    private static final int MAX_QUANTITY_PER_ITEM = 20;
+    private static final Duration ORDER_COOLDOWN = Duration.ofSeconds(10);
+    private final Map<Long, Instant> lastOrderTimestamps = new ConcurrentHashMap<>();
 
     @Transactional
     public OrderResponseDTO placeOrder(OrderRequestDTO request) {
+        validateOrderRequest(request);
+
         TableOfQR table = storeTableRepository.findByQrToken(request.qrToken())
                 .orElseThrow(() -> new RuntimeException("Invalid QR token"));
+
+        checkRateLimit(table.getId());
 
         Order order = new Order();
         order.setTable(table);
@@ -77,5 +89,31 @@ public class OrderService {
                 .stream()
                 .map(orderMapper::toDTO)
                 .toList();
+    }
+
+    private void validateOrderRequest(OrderRequestDTO request) {
+        if (request.items() == null || request.items().isEmpty()) {
+            throw new RuntimeException("Η παραγγελία πρέπει να έχει τουλάχιστον ένα προϊόν.");
+        }
+        if (request.items().size() > MAX_ITEMS_PER_ORDER) {
+            throw new RuntimeException("Μέγιστος αριθμός διαφορετικών προϊόντων ανά παραγγελία: " + MAX_ITEMS_PER_ORDER);
+        }
+        for (var item : request.items()) {
+            if (item.quantity() <= 0) {
+                throw new RuntimeException("Η ποσότητα πρέπει να είναι τουλάχιστον 1.");
+            }
+            if (item.quantity() > MAX_QUANTITY_PER_ITEM) {
+                throw new RuntimeException("Μέγιστη ποσότητα ανά προϊόν: " + MAX_QUANTITY_PER_ITEM);
+            }
+        }
+    }
+
+    private void checkRateLimit(Long tableId) {
+        Instant now = Instant.now();
+        Instant previous = lastOrderTimestamps.put(tableId, now);
+        if (previous != null && Duration.between(previous, now).compareTo(ORDER_COOLDOWN) < 0) {
+            lastOrderTimestamps.put(tableId, previous); // rollback, η παραγγελία απορρίπτεται
+            throw new RuntimeException("Παρακαλώ περίμενε λίγα δευτερόλεπτα πριν στείλεις νέα παραγγελία.");
+        }
     }
 }
