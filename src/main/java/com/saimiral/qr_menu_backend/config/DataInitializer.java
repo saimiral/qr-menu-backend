@@ -136,8 +136,52 @@ public class DataInitializer {
             log.info("Admin: admin@kafeteria.gr / admin123");
             log.info("Kitchen: kitchen@kafeteria.gr / kitchen123");
 
+            Store store2 = new Store();
+            store2.setName("Ταβέρνα Δοκιμή");
+            store2.setSlug("taverna-dokimi");
+            store2.setOwnerEmail("owner2@test.com");
+            storeRepository.save(store2);
+
+            for (int i = 1; i <= 3; i++) {
+                TableOfQR table2 = new TableOfQR();
+                table2.setStore(store2);
+                table2.setTableNumber(i);
+                TableOfQR saved2 = storeTableRepository.save(table2);
+                log.info("[Store2] Table {} QR Token: {}", i, saved2.getQrToken());
+            }
+
+            Category mains = new Category();
+            mains.setStore(store2);
+            mains.setName("Κυρίως Πιάτα");
+            mains.setSortOrder(1);
+            categoryRepository.save(mains);
+
+            MenuItem souvlaki = new MenuItem();
+            souvlaki.setCategory(mains);
+            souvlaki.setName("Σουβλάκι Χοιρινό");
+            souvlaki.setDescription("Με πίτα, ντομάτα, κρεμμύδι");
+            souvlaki.setPrice(new BigDecimal("3.50"));
+            menuItemRepository.save(souvlaki);
+
+            MenuItem salad = new MenuItem();
+            salad.setCategory(mains);
+            salad.setName("Χωριάτικη Σαλάτα");
+            salad.setDescription("Ντομάτα, αγγούρι, φέτα, ελιές");
+            salad.setPrice(new BigDecimal("6.00"));
+            menuItemRepository.save(salad);
+
+            StoreUser admin2 = new StoreUser();
+            admin2.setStore(store2);
+            admin2.setEmail("admin@taverna.gr");
+            admin2.setPassword(passwordEncoder.encode("admin123"));
+            admin2.setRole(UserRole.ADMIN);
+            StoreUserRepository.save(admin2);
+
+            log.info("Admin2: admin@taverna.gr / admin123");
+
             log.info("✅ Test data seeded successfully!");
             log.info("Store slug: kafeteria-dokimi");
+            log.info("Store2 slug: taverna-dokimi");
             log.info("Check logs above for QR tokens of each table");
         };
     }
