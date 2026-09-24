@@ -116,4 +116,10 @@ public class OrderService {
             throw new RuntimeException("Παρακαλώ περίμενε λίγα δευτερόλεπτα πριν στείλεις νέα παραγγελία.");
         }
     }
+
+    public OrderResponseDTO getOrderById(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+        return orderMapper.toDTO(order);
+    }
 }

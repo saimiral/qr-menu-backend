@@ -47,4 +47,9 @@ public class OrderController {
     public SseEmitter streamOrders(@PathVariable String storeSlug) {
         return sseService.subscribe(storeSlug);
     }
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderResponseDTO> getOrder(@PathVariable Long orderId) {
+        return ResponseEntity.ok(orderService.getOrderById(orderId));
+    }
 }
