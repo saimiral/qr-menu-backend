@@ -19,21 +19,26 @@ public class SSE_Service {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
 
         emitter.onCompletion(() -> {
-            emitters.remove(storeSlug);
+            emitters.remove(storeSlug, emitter);
             log.info("SSE connection closed for store: {}", storeSlug);
         });
 
         emitter.onTimeout(() -> {
-            emitters.remove(storeSlug);
+            emitters.remove(storeSlug, emitter);
             log.info("SSE connection timed out for store: {}", storeSlug);
         });
 
         emitter.onError(e -> {
-            emitters.remove(storeSlug);
+            emitters.remove(storeSlug, emitter);
             log.warn("SSE error for store {}: {}", storeSlug, e.getMessage());
         });
 
         emitters.put(storeSlug, emitter);
+        try {
+            emitter.send(SseEmitter.event().name("connected").data("ok"));
+        } catch (IOException e) {
+            emitters.remove(storeSlug, emitter);
+        }
         log.info("SSE connection established for store: {}", storeSlug);
         return emitter;
     }

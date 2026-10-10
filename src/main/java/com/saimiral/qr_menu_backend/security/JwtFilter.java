@@ -1,5 +1,6 @@
 package com.saimiral.qr_menu_backend.security;
 
+import com.saimiral.qr_menu_backend.service.SseTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,12 +14,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final SseTokenService sseTokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -26,15 +29,31 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        String token = extractToken(request);
+        String email = null;
+        String role = null;
 
-        if (token == null || !jwtService.isTokenValid(token)) {
+        String bearer = extractBearerToken(request);
+        if (bearer != null) {
+            if (jwtService.isTokenValid(bearer)) {
+                email = jwtService.extractEmail(bearer);
+                role = jwtService.extractRole(bearer);
+            }
+        } else if (request.getRequestURI().endsWith("/stream")) {
+            // Το native EventSource δεν στέλνει headers: δεχόμαστε ΜΟΝΟ short-lived one-time ticket
+            String ticket = request.getParameter("token");
+            if (ticket != null) {
+                Optional<SseTokenService.SseTicket> found = sseTokenService.consume(ticket);
+                if (found.isPresent()) {
+                    email = found.get().email();
+                    role = found.get().role();
+                }
+            }
+        }
+
+        if (email == null) {
             filterChain.doFilter(request, response);
             return;
         }
-
-        String email = jwtService.extractEmail(token);
-        String role = jwtService.extractRole(token);
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                 email,
@@ -46,15 +65,10 @@ public class JwtFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String extractToken(HttpServletRequest request) {
+    private String extractBearerToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7);
-        }
-        // Fallback: το native EventSource δεν στέλνει custom headers,
-        // οπότε μόνο για /stream δεχόμαστε το token ως query param
-        if (request.getRequestURI().endsWith("/stream")) {
-            return request.getParameter("token");
         }
         return null;
     }
