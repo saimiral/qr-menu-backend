@@ -6,6 +6,7 @@ import com.saimiral.qr_menu_backend.repository.StoreUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,6 +19,7 @@ public class AuthMeController {
     private final StoreUserRepository storeUserRepository;
 
     @GetMapping("/me")
+    @Transactional(readOnly = true)
     public ResponseEntity<CurrentUserResponseDTO> getCurrentUser(Authentication authentication) {
         StoreUser user = storeUserRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("Ο χρήστης δεν βρέθηκε"));

@@ -3,16 +3,14 @@ package com.saimiral.qr_menu_backend.service;
 import com.saimiral.qr_menu_backend.dto.OrderRequestDTO;
 import com.saimiral.qr_menu_backend.dto.OrderResponseDTO;
 import com.saimiral.qr_menu_backend.dto.OrderStatusUpdateDTO;
-import com.saimiral.qr_menu_backend.entity.MenuItem;
-import com.saimiral.qr_menu_backend.entity.Order;
-import com.saimiral.qr_menu_backend.entity.OrderItem;
-import com.saimiral.qr_menu_backend.entity.OrderStatus;
-import com.saimiral.qr_menu_backend.entity.TableOfQR;
+import com.saimiral.qr_menu_backend.entity.*;
 import com.saimiral.qr_menu_backend.mapper.OrderMapper;
 import com.saimiral.qr_menu_backend.repository.MenuItemRepository;
 import com.saimiral.qr_menu_backend.repository.OrderRepository;
 import com.saimiral.qr_menu_backend.repository.TableRepository;
+import com.saimiral.qr_menu_backend.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +33,7 @@ public class OrderService {
     private static final int MAX_QUANTITY_PER_ITEM = 20;
     private static final Duration ORDER_COOLDOWN = Duration.ofSeconds(10);
     private final Map<Long, Instant> lastOrderTimestamps = new ConcurrentHashMap<>();
+    private final CurrentUserService currentUserService;
 
     @Transactional
     public OrderResponseDTO placeOrder(OrderRequestDTO request) {
@@ -75,15 +74,18 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponseDTO updateStatus(Long orderId, OrderStatusUpdateDTO request) {
+    public OrderResponseDTO updateStatus(Long orderId, OrderStatusUpdateDTO request, Authentication authentication) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+        assertStoreAccess(order.getTable().getStore().getSlug(), authentication);
 
         order.setStatus(request.status());
         return orderMapper.toDTO(orderRepository.save(order));
     }
 
-    public List<OrderResponseDTO> getActiveOrders(String storeSlug) {
+    @Transactional(readOnly = true)
+    public List<OrderResponseDTO> getActiveOrders(String storeSlug, Authentication authentication) {
+        assertStoreAccess(storeSlug, authentication);
         return orderRepository
                 .findByTableStoreSlugAndStatusNot(storeSlug, OrderStatus.PAID)
                 .stream()
@@ -117,9 +119,18 @@ public class OrderService {
         }
     }
 
+    @Transactional(readOnly = true)
     public OrderResponseDTO getOrderById(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
         return orderMapper.toDTO(order);
+    }
+
+    @Transactional(readOnly = true)
+    public void assertStoreAccess(String storeSlug, Authentication authentication) {
+        Store store = currentUserService.getCurrentStore(authentication);
+        if (!store.getSlug().equals(storeSlug)) {
+            throw new RuntimeException("Δεν έχεις πρόσβαση σε αυτό το κατάστημα");
+        }
     }
 }

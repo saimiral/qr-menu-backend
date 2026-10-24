@@ -12,6 +12,7 @@ import com.saimiral.qr_menu_backend.repository.MenuItemRepository;
 import com.saimiral.qr_menu_backend.repository.TableRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,6 +26,7 @@ public class MenuService {
     private final CategoryMapper categoryMapper;
     private final MenuItemMapper menuItemMapper;
 
+    @Transactional(readOnly = true)
     public MenuResponseDTO getMenu(String qrToken) {
         TableOfQR table = storeTableRepository.findByQrToken(qrToken)
                 .orElseThrow(() -> new RuntimeException("Invalid QR token"));

@@ -8,6 +8,7 @@ import com.saimiral.qr_menu_backend.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +18,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final BCryptPasswordEncoder passwordEncoder;
 
+    @Transactional(readOnly = true)
     public LoginResponseDTO login(LoginRequestDTO request) {
         StoreUser user = storeUserRepository.findByEmail(request.email())
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));

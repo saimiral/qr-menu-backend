@@ -33,7 +33,15 @@ public class SSE_Service {
             log.warn("SSE error for store {}: {}", storeSlug, e.getMessage());
         });
 
-        emitters.put(storeSlug, emitter);
+        SseEmitter previous = emitters.put(storeSlug, emitter);
+        if (previous != null) {
+            try {
+                previous.complete();
+            } catch (Exception e) {
+                log.debug("Previous emitter for store {} was already closed", storeSlug);
+            }
+        }
+
         try {
             emitter.send(SseEmitter.event().name("connected").data("ok"));
         } catch (IOException e) {
@@ -55,7 +63,7 @@ public class SSE_Service {
                     .name("new-order")
                     .data(orderData));
         } catch (IOException e) {
-            emitters.remove(storeSlug);
+            emitters.remove(storeSlug, emitter);
             log.warn("Failed to send SSE event to store {}: {}", storeSlug, e.getMessage());
         }
     }
