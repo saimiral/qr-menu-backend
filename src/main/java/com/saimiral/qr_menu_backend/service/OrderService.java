@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -49,6 +50,7 @@ public class OrderService {
         Order order = new Order();
         order.setTable(table);
         order.setStatus(OrderStatus.PENDING);
+        order.setPublicToken(UUID.randomUUID().toString());
 
         List<OrderItem> items = request.items().stream()
                 .map(itemRequest -> {
@@ -122,9 +124,9 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public OrderResponseDTO getOrderById(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new BadRequestException("Order not found: " + orderId));
+    public OrderResponseDTO getOrderByToken(String publicToken) {
+        Order order = orderRepository.findByPublicToken(publicToken)
+                .orElseThrow(() -> new BadRequestException("Order not found"));
         return orderMapper.toDTO(order);
     }
 

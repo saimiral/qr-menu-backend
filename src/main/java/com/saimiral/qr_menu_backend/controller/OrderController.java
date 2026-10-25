@@ -52,8 +52,8 @@ public class OrderController {
         return sseService.subscribe(storeSlug);
     }
 
-    @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponseDTO> getOrder(@PathVariable Long orderId) {
-        return ResponseEntity.ok(orderService.getOrderById(orderId));
+    @GetMapping("/track/{publicToken}")
+    public ResponseEntity<OrderResponseDTO> getOrderByToken(@PathVariable String publicToken) {
+        return ResponseEntity.ok(orderService.getOrderByToken(publicToken));
     }
 }

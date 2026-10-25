@@ -7,6 +7,7 @@ import java.util.List;
 
 public record OrderResponseDTO(
         Long id,
+        String publicToken,
         Integer tableNumber,
         OrderStatus status,
         LocalDateTime createdAt,

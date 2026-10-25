@@ -19,6 +19,10 @@ public class Order extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Τυχαίο token που ξέρει μόνο ο πελάτης που έκανε την παραγγελία
+    @Column(unique = true, updatable = false)
+    private String publicToken;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "table_id", nullable = false)
     private TableOfQR table;
