@@ -4,6 +4,8 @@ import com.saimiral.qr_menu_backend.dto.TableCreateDTO;
 import com.saimiral.qr_menu_backend.dto.TableResponseDTO;
 import com.saimiral.qr_menu_backend.entity.Store;
 import com.saimiral.qr_menu_backend.entity.TableOfQR;
+import com.saimiral.qr_menu_backend.exception.BadRequestException;
+import com.saimiral.qr_menu_backend.exception.ForbiddenException;
 import com.saimiral.qr_menu_backend.repository.TableRepository;
 import com.saimiral.qr_menu_backend.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
@@ -54,10 +56,10 @@ public class TableAdminService {
         Store store = currentUserService.getCurrentStore(authentication);
 
         TableOfQR table = tableRepository.findById(tableId)
-                .orElseThrow(() -> new RuntimeException("Το τραπέζι δεν βρέθηκε"));
+                .orElseThrow(() -> new BadRequestException("Το τραπέζι δεν βρέθηκε"));
 
         if (!table.getStore().getId().equals(store.getId())) {
-            throw new RuntimeException("Δεν έχεις πρόσβαση σε αυτό το τραπέζι");
+            throw new ForbiddenException("Δεν έχεις πρόσβαση σε αυτό το τραπέζι");
         }
 
         return table;

@@ -6,6 +6,8 @@ import com.saimiral.qr_menu_backend.dto.CategoryRequestDTO;
 import com.saimiral.qr_menu_backend.entity.Category;
 import com.saimiral.qr_menu_backend.entity.MenuItem;
 import com.saimiral.qr_menu_backend.entity.Store;
+import com.saimiral.qr_menu_backend.exception.BadRequestException;
+import com.saimiral.qr_menu_backend.exception.ForbiddenException;
 import com.saimiral.qr_menu_backend.repository.CategoryRepository;
 import com.saimiral.qr_menu_backend.repository.MenuItemRepository;
 import com.saimiral.qr_menu_backend.security.CurrentUserService;
@@ -61,7 +63,7 @@ public class CategoryAdminService {
 
         List<MenuItem> items = menuItemRepository.findByCategoryId(categoryId);
         if (!items.isEmpty()) {
-            throw new RuntimeException("Δεν μπορείς να διαγράψεις κατηγορία που έχει προϊόντα. Διάγραψε πρώτα τα προϊόντα.");
+            throw new BadRequestException("Δεν μπορείς να διαγράψεις κατηγορία που έχει προϊόντα. Διάγραψε πρώτα τα προϊόντα.");
         }
 
         categoryRepository.delete(category);
@@ -71,10 +73,10 @@ public class CategoryAdminService {
         Store store = currentUserService.getCurrentStore(authentication);
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Η κατηγορία δεν βρέθηκε"));
+                .orElseThrow(() -> new BadRequestException("Η κατηγορία δεν βρέθηκε"));
 
         if (!category.getStore().getId().equals(store.getId())) {
-            throw new RuntimeException("Δεν έχεις πρόσβαση σε αυτή την κατηγορία");
+            throw new ForbiddenException("Δεν έχεις πρόσβαση σε αυτή την κατηγορία");
         }
 
         return category;

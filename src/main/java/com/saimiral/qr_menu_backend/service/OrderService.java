@@ -4,6 +4,8 @@ import com.saimiral.qr_menu_backend.dto.OrderRequestDTO;
 import com.saimiral.qr_menu_backend.dto.OrderResponseDTO;
 import com.saimiral.qr_menu_backend.dto.OrderStatusUpdateDTO;
 import com.saimiral.qr_menu_backend.entity.*;
+import com.saimiral.qr_menu_backend.exception.BadRequestException;
+import com.saimiral.qr_menu_backend.exception.ForbiddenException;
 import com.saimiral.qr_menu_backend.mapper.OrderMapper;
 import com.saimiral.qr_menu_backend.repository.MenuItemRepository;
 import com.saimiral.qr_menu_backend.repository.OrderRepository;
@@ -40,7 +42,7 @@ public class OrderService {
         validateOrderRequest(request);
 
         TableOfQR table = storeTableRepository.findByQrToken(request.qrToken())
-                .orElseThrow(() -> new RuntimeException("Invalid QR token"));
+                .orElseThrow(() -> new BadRequestException("Invalid QR token"));
 
         checkRateLimit(table.getId());
 
@@ -51,7 +53,7 @@ public class OrderService {
         List<OrderItem> items = request.items().stream()
                 .map(itemRequest -> {
                     MenuItem menuItem = menuItemRepository.findById(itemRequest.menuItemId())
-                            .orElseThrow(() -> new RuntimeException("MenuItem not found: " + itemRequest.menuItemId()));
+                            .orElseThrow(() -> new BadRequestException("MenuItem not found: " + itemRequest.menuItemId()));
 
                     OrderItem orderItem = new OrderItem();
                     orderItem.setOrder(order);
@@ -76,7 +78,7 @@ public class OrderService {
     @Transactional
     public OrderResponseDTO updateStatus(Long orderId, OrderStatusUpdateDTO request, Authentication authentication) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+                .orElseThrow(() -> new BadRequestException("Order not found: " + orderId));
         assertStoreAccess(order.getTable().getStore().getSlug(), authentication);
 
         order.setStatus(request.status());
@@ -95,17 +97,17 @@ public class OrderService {
 
     private void validateOrderRequest(OrderRequestDTO request) {
         if (request.items() == null || request.items().isEmpty()) {
-            throw new RuntimeException("Η παραγγελία πρέπει να έχει τουλάχιστον ένα προϊόν.");
+            throw new BadRequestException("Η παραγγελία πρέπει να έχει τουλάχιστον ένα προϊόν.");
         }
         if (request.items().size() > MAX_ITEMS_PER_ORDER) {
-            throw new RuntimeException("Μέγιστος αριθμός διαφορετικών προϊόντων ανά παραγγελία: " + MAX_ITEMS_PER_ORDER);
+            throw new BadRequestException("Μέγιστος αριθμός διαφορετικών προϊόντων ανά παραγγελία: " + MAX_ITEMS_PER_ORDER);
         }
         for (var item : request.items()) {
             if (item.quantity() <= 0) {
-                throw new RuntimeException("Η ποσότητα πρέπει να είναι τουλάχιστον 1.");
+                throw new BadRequestException("Η ποσότητα πρέπει να είναι τουλάχιστον 1.");
             }
             if (item.quantity() > MAX_QUANTITY_PER_ITEM) {
-                throw new RuntimeException("Μέγιστη ποσότητα ανά προϊόν: " + MAX_QUANTITY_PER_ITEM);
+                throw new BadRequestException("Μέγιστη ποσότητα ανά προϊόν: " + MAX_QUANTITY_PER_ITEM);
             }
         }
     }
@@ -115,14 +117,14 @@ public class OrderService {
         Instant previous = lastOrderTimestamps.put(tableId, now);
         if (previous != null && Duration.between(previous, now).compareTo(ORDER_COOLDOWN) < 0) {
             lastOrderTimestamps.put(tableId, previous); // rollback, η παραγγελία απορρίπτεται
-            throw new RuntimeException("Παρακαλώ περίμενε λίγα δευτερόλεπτα πριν στείλεις νέα παραγγελία.");
+            throw new BadRequestException("Παρακαλώ περίμενε λίγα δευτερόλεπτα πριν στείλεις νέα παραγγελία.");
         }
     }
 
     @Transactional(readOnly = true)
     public OrderResponseDTO getOrderById(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+                .orElseThrow(() -> new BadRequestException("Order not found: " + orderId));
         return orderMapper.toDTO(order);
     }
 
@@ -130,7 +132,7 @@ public class OrderService {
     public void assertStoreAccess(String storeSlug, Authentication authentication) {
         Store store = currentUserService.getCurrentStore(authentication);
         if (!store.getSlug().equals(storeSlug)) {
-            throw new RuntimeException("Δεν έχεις πρόσβαση σε αυτό το κατάστημα");
+            throw new ForbiddenException("Δεν έχεις πρόσβαση σε αυτό το κατάστημα");
         }
     }
 }

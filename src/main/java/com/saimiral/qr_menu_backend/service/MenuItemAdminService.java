@@ -5,6 +5,8 @@ import com.saimiral.qr_menu_backend.dto.MenuItemRequestDTO;
 import com.saimiral.qr_menu_backend.entity.Category;
 import com.saimiral.qr_menu_backend.entity.MenuItem;
 import com.saimiral.qr_menu_backend.entity.Store;
+import com.saimiral.qr_menu_backend.exception.BadRequestException;
+import com.saimiral.qr_menu_backend.exception.ForbiddenException;
 import com.saimiral.qr_menu_backend.repository.CategoryRepository;
 import com.saimiral.qr_menu_backend.repository.MenuItemRepository;
 import com.saimiral.qr_menu_backend.security.CurrentUserService;
@@ -71,10 +73,10 @@ public class MenuItemAdminService {
         Store store = currentUserService.getCurrentStore(authentication);
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Η κατηγορία δεν βρέθηκε"));
+                .orElseThrow(() -> new BadRequestException("Η κατηγορία δεν βρέθηκε"));
 
         if (!category.getStore().getId().equals(store.getId())) {
-            throw new RuntimeException("Δεν έχεις πρόσβαση σε αυτή την κατηγορία");
+            throw new ForbiddenException("Δεν έχεις πρόσβαση σε αυτή την κατηγορία");
         }
 
         return category;
@@ -84,10 +86,10 @@ public class MenuItemAdminService {
         Store store = currentUserService.getCurrentStore(authentication);
 
         MenuItem item = menuItemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Το προϊόν δεν βρέθηκε"));
+                .orElseThrow(() -> new BadRequestException("Το προϊόν δεν βρέθηκε"));
 
         if (!item.getCategory().getStore().getId().equals(store.getId())) {
-            throw new RuntimeException("Δεν έχεις πρόσβαση σε αυτό το προϊόν");
+            throw new ForbiddenException("Δεν έχεις πρόσβαση σε αυτό το προϊόν");
         }
 
         return item;

@@ -5,6 +5,7 @@ import com.saimiral.qr_menu_backend.dto.MenuItemDTO;
 import com.saimiral.qr_menu_backend.dto.MenuResponseDTO;
 import com.saimiral.qr_menu_backend.entity.Category;
 import com.saimiral.qr_menu_backend.entity.TableOfQR;
+import com.saimiral.qr_menu_backend.exception.BadRequestException;
 import com.saimiral.qr_menu_backend.mapper.CategoryMapper;
 import com.saimiral.qr_menu_backend.mapper.MenuItemMapper;
 import com.saimiral.qr_menu_backend.repository.CategoryRepository;
@@ -29,7 +30,7 @@ public class MenuService {
     @Transactional(readOnly = true)
     public MenuResponseDTO getMenu(String qrToken) {
         TableOfQR table = storeTableRepository.findByQrToken(qrToken)
-                .orElseThrow(() -> new RuntimeException("Invalid QR token"));
+                .orElseThrow(() -> new BadRequestException("Invalid QR token"));
 
         List<Category> categories = categoryRepository.findByStoreIdOrderBySortOrderAsc(
                 table.getStore().getId()
