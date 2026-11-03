@@ -81,10 +81,14 @@ public class OrderService {
     public OrderResponseDTO updateStatus(Long orderId, OrderStatusUpdateDTO request, Authentication authentication) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BadRequestException("Order not found: " + orderId));
-        assertStoreAccess(order.getTable().getStore().getSlug(), authentication);
+        String storeSlug = order.getTable().getStore().getSlug();
+        assertStoreAccess(storeSlug, authentication);
 
         order.setStatus(request.status());
-        return orderMapper.toDTO(orderRepository.save(order));
+        OrderResponseDTO response = orderMapper.toDTO(orderRepository.save(order));
+        sseService.pushOrderUpdate(storeSlug, response);
+
+        return response;
     }
 
     @Transactional(readOnly = true)
